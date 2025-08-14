@@ -1,87 +1,138 @@
 package pages;
 
 import org.openqa.selenium.*;
-import org.openqa.selenium.support.ui.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
 
 public class HotelDetailsPage {
     private final WebDriver driver;
+    private final WebDriverWait wait;
 
-    // Locators (adjust if Booking.com changes HTML)
-    private final By bedSelection = By.cssSelector("input[value='2'][name='bedPreference_78883128']");
-    private final By selectAmount = By.cssSelector("#hprt_nos_select_bbasic_0");
-    private final By reserveButton = By.xpath("(//span[@class='bui-button__text js-reservation-button__text'])[1]");
+    /**
+    * Locators (adjust selectors based on current DOM)
+    */
+    private final By roomTable = By.cssSelector("table.hprt-table"); // Table that lists available rooms
+    private final By reserveButton = By.xpath("(//span[@class='bui-button__text js-reservation-button__text'])[1]"); // Reserve button for a selected room
+    private final By bedRadioButton = By.xpath("(//input[contains(@name,'bedPreference_78883120')])[3]");
+    private final By amountDropdown = By.xpath("(//select[@id='hprt_nos_select_78883120_386871369_0_33_0_131741'])[1]");
 
     public HotelDetailsPage(WebDriver driver) {
         this.driver = driver;
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(20)); // Wait up to 20 seconds for elements
     }
 
     /**
-     * Scrolls the main window until the element is visible, waits until clickable, and returns it.
+     * Selects a bed and clicks the reserve button.
+     * Waits for room table and reserve button to be visible/clickable.
      */
-    private WebElement scrollToElement(By locator, int timeoutSeconds) {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
-
-        // Wait until present in DOM
-        WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
-
-        // Wait until visible on screen
-        wait.until(ExpectedConditions.visibilityOf(element));
-
-        // Scroll into view directly
-        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
-
-        // Wait until clickable
-        return wait.until(ExpectedConditions.elementToBeClickable(element));
-    }
-
-    /**
-     * Selects the first bed option.
-     */
-    public void selectBed() {
-        WebElement bedOption = scrollToElement(bedSelection, 15);
-        bedOption.click();
-        System.out.println("🛏 Bed option selected");
-    }
-
-    /**
-     * Selects the first available amount option from the dropdown.
-     */
-    public void selectAmount() {
-        WebElement dropdown = scrollToElement(selectAmount, 15);
-
-        // Wait for dropdown options to load
-        new WebDriverWait(driver, Duration.ofSeconds(5))
-                .until(d -> dropdown.findElements(By.tagName("option")).size() > 0);
+    private void selectBedAndReserve() {
+        System.out.println("🔵 [START] Selecting bed, choosing options, and reserving room...");
 
         try {
-            Select select = new Select(dropdown);
-            if (select.getOptions().size() > 1) {
-                select.selectByIndex(1); // choose second option if available
-                System.out.println("💰 Amount option selected (index 1)");
-            } else {
-                dropdown.click(); // fallback
-                System.out.println("💰 Amount option clicked (only 1 available)");
+            // Step 0: Wait for room table to be visible (no variable needed)
+            System.out.println("⏳ Waiting for room table...");
+            wait.until(ExpectedConditions.visibilityOfElementLocated(roomTable));
+            System.out.println("✅ Room table found!");
+
+            // Step 1: Click the desired bed radio button
+            WebElement bedOption = wait.until(ExpectedConditions.elementToBeClickable(bedRadioButton));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", bedOption);
+            bedOption.click();
+            System.out.println("✅ Bed radio button selected");
+
+            // Step 2: Select amount from dropdown
+            WebElement dropdown = wait.until(ExpectedConditions.elementToBeClickable(amountDropdown));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", dropdown);
+            dropdown.click(); // open dropdown
+            dropdown.findElement(By.xpath(".//option[2]")).click(); // select second option as example
+            System.out.println("✅ Amount selected from dropdown");
+
+            // Step 3: Click the reserve button with retries
+            boolean clicked = false;
+            int attempts = 0;
+            int maxAttempts = 5;
+
+            while (!clicked && attempts < maxAttempts) {
+                attempts++;
+                try {
+                    WebElement reserveBtn = driver.findElement(reserveButton);
+                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", reserveBtn);
+                    wait.until(ExpectedConditions.elementToBeClickable(reserveBtn)).click();
+                    clicked = true;
+                    System.out.println("🟢 [PASS] Room reserved successfully on attempt " + attempts + "!");
+                } catch (ElementClickInterceptedException | TimeoutException e) {
+                    System.out.println("⚠️ Attempt " + attempts + " failed, retrying...");
+                    Thread.sleep(1000);
+                }
             }
-        } catch (UnexpectedTagNameException e) {
-            dropdown.click();
+
+            if (!clicked) {
+                throw new RuntimeException("❌ Failed to click reserve button after retries");
+            }
+
+        } catch (TimeoutException e) {
+            System.out.println("❌ [FAIL] Timeout while waiting for room table or elements.");
+            throw new RuntimeException("❌ Failed to find room table or other elements", e);
+
+        } catch (Exception e) {
+            System.out.println("❌ [FAIL] Unexpected error: " + e.getMessage());
+            throw new RuntimeException("❌ Unexpected failure during selectBedAndReserve()", e);
         }
+
+        System.out.println("🔵 [END] selectBedAndReserve()");
     }
 
     /**
-     * Clicks the reserve button.
+     * Validates that displayed dates on hotel details page
+     * match the expected dates that were entered in search.
+     *
+     * @param expectedFromDate date chosen in search page
+     * @param expectedToDate   date chosen in search page
      */
-    public void clickReserve() {
-        scrollToElement(reserveButton, 15).click();
-        System.out.println("✅ Reserve button clicked");
+    private void assertDatesMatch(String expectedFromDate, String expectedToDate) {
+        System.out.println("🔵 [START] Validating check-in and check-out dates");
+
+        try {
+            By actualFromDay = By.xpath("(//span[@data-testid='date-display-field-start'])[1]");
+            By actualToDay   = By.xpath("  (//span[@data-testid='date-display-field-end'])[1]");
+
+            WebElement fromElement = wait.until(ExpectedConditions.visibilityOfElementLocated(actualFromDay));
+            WebElement toElement   = wait.until(ExpectedConditions.visibilityOfElementLocated(actualToDay));
+
+            String fromDay = fromElement.getText().trim();
+            String toDay   = toElement.getText().trim();
+
+            // Log actual vs expected
+            System.out.println("📅 Actual From Date: " + fromDay);
+            System.out.println("📅 Actual To Date: " + toDay);
+            System.out.println("📅 Expected From Date: " + expectedFromDate);
+            System.out.println("📅 Expected To Date: " + expectedToDate);
+
+            // check dates
+            if (fromDay.equals(expectedFromDate) && toDay.equals(expectedToDate)) {
+                System.out.println("🟢 [PASS] Dates match!");
+            } else {
+                throw new AssertionError("❌ Dates do not match! Expected [" +
+                        expectedFromDate + " → " + expectedToDate + "] but found [" +
+                        fromDay + " → " + toDay + "]");
+            }
+
+        } catch (TimeoutException e) {
+            System.out.println("❌ [FAIL] Timeout while waiting for date elements");
+            throw e;
+        } catch (Exception e) {
+            System.out.println("❌ [FAIL] Error while validating dates: " + e.getMessage());
+            throw e;
+        }
+
+        System.out.println("🔵 [END] assertDatesMatch()");
     }
 
-    /**
-     * Master reservation flow.
-     */
-    public void performReserve() {
-        selectBed();
-        selectAmount();
-        clickReserve();
+    public void preformReservation(String expectedFromDate, String expectedToDate){
+        System.out.println("Step 5: Validate dates");
+        assertDatesMatch(expectedFromDate,expectedToDate);
+        System.out.println("Step 6: Reserve room");
+        selectBedAndReserve();
     }
 }
