@@ -35,7 +35,6 @@ public class HotelDetailsPage {
         return wait.until(ExpectedConditions.elementToBeClickable(element));
     }
 
-
     /**
      * Selects the first bed option.
      */
