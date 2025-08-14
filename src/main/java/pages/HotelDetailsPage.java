@@ -1,71 +1,88 @@
 package pages;
 
 import org.openqa.selenium.*;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
-
+import org.openqa.selenium.support.ui.*;
 import java.time.Duration;
 
 public class HotelDetailsPage {
     private final WebDriver driver;
 
-    private final By checkInDisplay = By.cssSelector("button[data-testid='date-display-field-start'] span[class='be2db1c937']");
-    private final By checkOutDisplay = By.cssSelector("button[data-testid='date-display-field-end'] span[class='be2db1c937']");
-    private final By reserveButton = By.xpath("(//span[@class='bui-button__text js-reservation-button__text'])[1]");
-    private final By bedTypeSelector = By.cssSelector("input[value='2'][name='bedPreference_78883120']");
+    // Locators (adjust if Booking.com changes HTML)
+    private final By bedSelection = By.cssSelector("input[value='2'][name='bedPreference_78883128']");
     private final By selectAmount = By.cssSelector("#hprt_nos_select_bbasic_0");
+    private final By reserveButton = By.xpath("(//span[@class='bui-button__text js-reservation-button__text'])[1]");
 
     public HotelDetailsPage(WebDriver driver) {
         this.driver = driver;
     }
 
     /**
-     * Scrolls to the element, waits until it's clickable, and returns it.
+     * Scrolls the main window until the element is visible, waits until clickable, and returns it.
      */
-    private WebElement scrollToElement(By locator, int timeoutInSeconds) {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds));
+    private WebElement scrollToElement(By locator, int timeoutSeconds) {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
 
-        // Wait for presence in DOM
+        // Wait until present in DOM
         WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
 
-        // Scroll into view
+        // Wait until visible on screen
+        wait.until(ExpectedConditions.visibilityOf(element));
+
+        // Scroll into view directly
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
 
         // Wait until clickable
         return wait.until(ExpectedConditions.elementToBeClickable(element));
     }
 
-    public String getCheckInDate() {
-        return new WebDriverWait(driver, Duration.ofSeconds(10))
-                .until(ExpectedConditions.visibilityOfElementLocated(checkInDisplay))
-                .getText();
+
+    /**
+     * Selects the first bed option.
+     */
+    public void selectBed() {
+        WebElement bedOption = scrollToElement(bedSelection, 15);
+        bedOption.click();
+        System.out.println("🛏 Bed option selected");
     }
 
-    public String getCheckOutDate() {
-        return new WebDriverWait(driver, Duration.ofSeconds(10))
-                .until(ExpectedConditions.visibilityOfElementLocated(checkOutDisplay))
-                .getText();
-    }
+    /**
+     * Selects the first available amount option from the dropdown.
+     */
+    public void selectAmount() {
+        WebElement dropdown = scrollToElement(selectAmount, 15);
 
-    private void selectBedTypeIfAvailable() {
+        // Wait for dropdown options to load
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(d -> dropdown.findElements(By.tagName("option")).size() > 0);
+
         try {
-            scrollToElement(bedTypeSelector, 5).click();
-        } catch (TimeoutException e) {
-            System.out.println("No specific bed selection found, skipping...");
+            Select select = new Select(dropdown);
+            if (select.getOptions().size() > 1) {
+                select.selectByIndex(1); // choose second option if available
+                System.out.println("💰 Amount option selected (index 1)");
+            } else {
+                dropdown.click(); // fallback
+                System.out.println("💰 Amount option clicked (only 1 available)");
+            }
+        } catch (UnexpectedTagNameException e) {
+            dropdown.click();
         }
     }
 
-    private void clickReserveButton() {
-        scrollToElement(reserveButton, 10).click();
+    /**
+     * Clicks the reserve button.
+     */
+    public void clickReserve() {
+        scrollToElement(reserveButton, 15).click();
+        System.out.println("✅ Reserve button clicked");
     }
 
-    private void selectAmount() {
-        scrollToElement(selectAmount, 10).click();
-    }
-
+    /**
+     * Master reservation flow.
+     */
     public void performReserve() {
-        selectBedTypeIfAvailable();
+        selectBed();
         selectAmount();
-        clickReserveButton();
+        clickReserve();
     }
 }
