@@ -9,7 +9,7 @@ import java.time.Duration;
 
 public class ReservationPage {
     private final WebDriver driver;
-    private final By hotelNameBox = By.xpath("//div[@class='bp_hotel_name_title']");
+    private final By hotelNameBox = By.xpath("//h1[normalize-space()='Tolip Hotel Alexandria']");
 
     public ReservationPage(WebDriver driver) {
         this.driver = driver;
