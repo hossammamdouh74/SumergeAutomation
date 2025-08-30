@@ -59,17 +59,30 @@ public class HotelDetailsPage {
             boolean clicked = false;
             int attempts = 0;
 
+
             while (!clicked && attempts < 5) {
                 attempts++;
                 try {
                     WebElement reserveBtn = driver.findElement(reserveButton);
-                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", reserveBtn);
+
+                    // Scroll into view
+                    ((JavascriptExecutor) driver).executeScript(
+                            "arguments[0].scrollIntoView({block:'center'});", reserveBtn
+                    );
+
+                    // Use WebDriverWait instead of Thread.sleep
                     wait.until(ExpectedConditions.elementToBeClickable(reserveBtn)).click();
+
                     clicked = true;
                     System.out.println("🟢 [PASS] Room reserved successfully on attempt " + attempts + "!");
+
                 } catch (ElementClickInterceptedException | TimeoutException ex) {
                     System.out.println("⚠️ Attempt " + attempts + " failed, retrying...");
-                    Thread.sleep(1000);
+
+                    // Instead of Thread.sleep, wait dynamically for the button to be re-checkable
+                    wait.until(ExpectedConditions.refreshed(
+                            ExpectedConditions.elementToBeClickable(reserveButton)
+                    ));
                 }
             }
 
