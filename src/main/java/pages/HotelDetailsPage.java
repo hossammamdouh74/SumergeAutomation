@@ -138,7 +138,7 @@ public class HotelDetailsPage {
         System.out.println("🔵 [END] assertDatesMatch()");
     }
 
-    public void preformReservation(String expectedFromDate, String expectedToDate){
+    public void performReservation(String expectedFromDate, String expectedToDate){
         System.out.println("Step 5: Validate dates");
         assertDatesMatch(expectedFromDate,expectedToDate);
         System.out.println("Step 6: Reserve room");

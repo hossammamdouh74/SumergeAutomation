@@ -62,7 +62,7 @@ public class BookingTest extends BaseTest {
         results.selectTolipHotel();
 
         // ✅ Step 5 & 6: Validate using actualCheckIn / actualCheckOut (من الإكسيل)
-        details.preformReservation(actualCheckIn, actualCheckOut);
+        details.performReservation(actualCheckIn, actualCheckOut);
 
         System.out.println("Step 7: Validate hotel name");
         Assert.assertTrue(reservation.getHotelName().contains("Tolip Hotel Alexandria"),
