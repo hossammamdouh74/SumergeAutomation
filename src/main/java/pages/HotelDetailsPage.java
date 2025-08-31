@@ -13,7 +13,7 @@ public class HotelDetailsPage {
      * Locators (dynamic, stable selectors)
      */
     private final By roomTable = By.cssSelector("table.hprt-table");
-    private final By bedRadioButton = By.cssSelector("input[name*='bedPreference_']");
+    private final By bedRadioButton = By.xpath("(//div[@class='rt-bed-type-select'])[2]");
     private final By amountDropdown = By.cssSelector("select[id^='hprt_nos_select']");
     private final By reserveButton = By.xpath("(//span[@class='bui-button__text js-reservation-button__text'])[1]");
 
@@ -34,23 +34,17 @@ public class HotelDetailsPage {
             wait.until(ExpectedConditions.visibilityOfElementLocated(roomTable));
             System.out.println("✅ Room table found!");
 
-            // Step 1: Try to select bed radio button (optional)
-            try {
-                WebElement bedOption = driver.findElement(bedRadioButton);
-                if (bedOption.isDisplayed()) {
-                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", bedOption);
-                    bedOption.click();
-                    System.out.println("✅ Bed radio button selected");
-                }
-            } catch (NoSuchElementException e) {
-                System.out.println("ℹ️ No bed preference option available — skipping.");
-            }
+            // Step 1: Select bed radio button (REQUIRED)
+            System.out.println("⏳ Waiting for bed radio button...");
+            WebElement bedOption = wait.until(ExpectedConditions.elementToBeClickable(bedRadioButton));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", bedOption);
+            bedOption.click();
+            System.out.println("✅ Bed radio button selected");
 
             // Step 2: Select amount from dropdown (always required)
             WebElement dropdown = wait.until(ExpectedConditions.elementToBeClickable(amountDropdown));
             ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", dropdown);
 
-            // pick first non-zero option
             dropdown.click();
             dropdown.findElement(By.xpath(".//option[not(@value='0')][1]")).click();
             System.out.println("✅ Amount selected from dropdown");
@@ -59,18 +53,15 @@ public class HotelDetailsPage {
             boolean clicked = false;
             int attempts = 0;
 
-
             while (!clicked && attempts < 5) {
                 attempts++;
                 try {
                     WebElement reserveBtn = driver.findElement(reserveButton);
 
-                    // Scroll into view
                     ((JavascriptExecutor) driver).executeScript(
                             "arguments[0].scrollIntoView({block:'center'});", reserveBtn
                     );
 
-                    // Use WebDriverWait instead of Thread.sleep
                     wait.until(ExpectedConditions.elementToBeClickable(reserveBtn)).click();
 
                     clicked = true;
@@ -78,8 +69,6 @@ public class HotelDetailsPage {
 
                 } catch (ElementClickInterceptedException | TimeoutException ex) {
                     System.out.println("⚠️ Attempt " + attempts + " failed, retrying...");
-
-                    // Instead of Thread.sleep, wait dynamically for the button to be re-checkable
                     wait.until(ExpectedConditions.refreshed(
                             ExpectedConditions.elementToBeClickable(reserveButton)
                     ));
