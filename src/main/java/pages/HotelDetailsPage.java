@@ -34,14 +34,14 @@ public class HotelDetailsPage {
             wait.until(ExpectedConditions.visibilityOfElementLocated(roomTable));
             System.out.println("✅ Room table found!");
 
-            // Step 1: Select bed radio button (REQUIRED)
+            // Step 1: Select bed radio button
             System.out.println("⏳ Waiting for bed radio button...");
             WebElement bedOption = wait.until(ExpectedConditions.elementToBeClickable(bedRadioButton));
             ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", bedOption);
             bedOption.click();
             System.out.println("✅ Bed radio button selected");
 
-            // Step 2: Select amount from dropdown (always required)
+            // Step 2: Select amount from dropdown
             WebElement dropdown = wait.until(ExpectedConditions.elementToBeClickable(amountDropdown));
             ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", dropdown);
 
