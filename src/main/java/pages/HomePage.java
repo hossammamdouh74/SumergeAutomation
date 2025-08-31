@@ -39,7 +39,7 @@ public class HomePage {
 
     /**
      * Selects check-in and check-out dates in the calendar widget
-     * @param checkIn date in format recognized by Booking.com (e.g., "Monday, August 19, 2025")
+     * @param checkIn date in format recognized by Booking.com
      * @param checkOut date in same format
      */
     public void selectDates(String checkIn, String checkOut) {
